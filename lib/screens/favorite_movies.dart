@@ -15,147 +15,160 @@ class FavoritesScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Favoritos'),
-        backgroundColor: Colors.black,
+        title: const Text('Mis Favoritos'),
+        backgroundColor: Colors.deepPurple[900],
         foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
       ),
+      backgroundColor: Colors.deepPurple[900],
       body: favoriteMovieIds.isEmpty
-          ? const Center(
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.movie_filter, size: 60, color: Colors.deepPurple[200]),
+            const SizedBox(height: 20),
+            Text(
+              'Aún no tienes películas favoritas',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Agrega algunas desde la lista principal',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      )
+          : FutureBuilder<List<dynamic>>(
+        future: apiService.fetchMoviesByIds(favoriteMovieIds),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Colors.deepPurpleAccent,
+              ),
+            );
+          } else if (snapshot.hasError) {
+            return Center(
               child: Text(
-                'No tienes películas favoritas.',
+                'Error al cargar favoritos',
                 style: TextStyle(color: Colors.white),
               ),
-            )
-          : FutureBuilder<List<dynamic>>(
-              future: apiService.fetchMoviesByIds(favoriteMovieIds),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  );
-                } else {
-                  final movies = snapshot.data!;
-                  return Stack(
-                    children: [
-                      // Fondo difuminado del póster de la primera película
-                      Positioned.fill(
-                        child: Image.network(
-                          movies.isNotEmpty
-                              ? 'https://image.tmdb.org/t/p/w500${movies.first['poster_path']}'
-                              : '',
+            );
+          } else {
+            final movies = snapshot.data!;
+            return GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.7,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: movies.length,
+              itemBuilder: (context, index) {
+                final movie = movies[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MovieDetails(movieId: movie['id']),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      children: [
+                        Image.network(
+                          'https://image.tmdb.org/t/p/w500${movie['poster_path']}',
                           fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
                         ),
-                      ),
-                      Positioned.fill(
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(color: Colors.black.withOpacity(0.6)),
-                        ),
-                      ),
-                      ListView.builder(
-                        itemCount: movies.length,
-                        itemBuilder: (context, index) {
-                          final movie = movies[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                            child: Card(
-                              color: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16.0),
-                              ),
-                              elevation: 8.0,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(16.0),
-                                    child: Image.network(
-                                      'https://image.tmdb.org/t/p/w500${movie['poster_path']}',
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: 250.0,
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Text(
-                                      movie['title'],
-                                      style: const TextStyle(
-                                        fontSize: 20.0,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                    child: Text(
-                                      'Calificación: ${movie['vote_average']}',
-                                      style: const TextStyle(color: Colors.white70),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(
-                                          Icons.favorite,
-                                          color: Colors.red,
-                                        ),
-                                        onPressed: () {
-                                          FavoritesService.toggleFavorite(movie['id']);
-                                        },
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => MovieDetails(movieId: movie['id']),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [Colors.amber[700]!, Colors.orange[600]!],
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                            ),
-                                            borderRadius: const BorderRadius.only(
-                                              topLeft: Radius.circular(12),
-                                              bottomRight: Radius.circular(16),
-                                            ),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
-                                          child: const Text(
-                                            'Ver Detalles',
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.black.withOpacity(0.8),
+                                  Colors.transparent,
                                 ],
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ],
-                  );
-                }
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          left: 8,
+                          right: 8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                movie['title'],
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    movie['vote_average'].toString(),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.favorite,
+                              color: Colors.red,
+                              size: 28,
+                            ),
+                            onPressed: () {
+                              FavoritesService.toggleFavorite(movie['id']);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               },
-            ),
+            );
+          }
+        },
+      ),
     );
   }
 }

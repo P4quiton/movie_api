@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import './services/api_service.dart';
 import 'movie_details_screen.dart';
 import './favorite_movies.dart';
@@ -20,8 +19,10 @@ class _MovieListState extends State<MovieList> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Películas Populares'),
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.deepPurple[900],
         foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite),
@@ -36,65 +37,40 @@ class _MovieListState extends State<MovieList> {
           ),
         ],
       ),
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.deepPurple[900],
       body: FutureBuilder<List<dynamic>>(
         future: apiService.fetchMovies(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(
+                color: Colors.deepPurpleAccent,
+              ),
+            );
           } else if (snapshot.hasError) {
             return Center(
               child: Text(
-                'Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white),
+                'Error al cargar películas',
+                style: TextStyle(color: Colors.white),
               ),
             );
-          } else {
-            final movies = snapshot.data!;
-            return ListView.separated(
-              itemCount: movies.length,
-              separatorBuilder: (context, index) => const Divider(color: Colors.grey),
-              itemBuilder: (context, index) {
-                final movie = movies[index];
-                final imageUrl = movie['poster_path'] != null
-                    ? 'https://image.tmdb.org/t/p/w500${movie['poster_path']}'
-                    : 'https://via.placeholder.com/500x750?text=No+Image';
+          }
 
-                return ListTile(
-                  contentPadding: const EdgeInsets.all(12.0),
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8.0),
-                    child: Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      width: 50,
-                      height: 75,
-                    ),
-                  ),
-                  title: Text(
-                    movie['title'],
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        'Calificación: ${(movie['vote_average'] / 2).toStringAsFixed(1)} / 5',
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                      RatingBarIndicator(
-                        rating: (movie['vote_average'] / 2),
-                        itemCount: 5,
-                        itemSize: 16.0,
-                        itemBuilder: (context, _) => const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                        ),
-                      ),
-                    ],
-                  ),
-                  trailing: FavoriteButton(movieId: movie['id']),
+          final movies = snapshot.data!;
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: movies.length,
+            itemBuilder: (context, index) {
+              final movie = movies[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                color: Colors.deepPurple[800],
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -103,10 +79,66 @@ class _MovieListState extends State<MovieList> {
                       ),
                     );
                   },
-                );
-              },
-            );
-          }
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            'https://image.tmdb.org/t/p/w500${movie['poster_path']}',
+                            width: 80,
+                            height: 120,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                movie['title'],
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    movie['vote_average'].toString(),
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                movie['release_date'],
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        FavoriteButton(movieId: movie['id']),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
         },
       ),
     );
@@ -143,7 +175,7 @@ class _FavoriteButtonState extends State<FavoriteButton> {
     return IconButton(
       icon: Icon(
         _isFavorite ? Icons.favorite : Icons.favorite_border,
-        color: Colors.red,
+        color: _isFavorite ? Colors.red : Colors.white70,
       ),
       onPressed: _toggleFavorite,
     );
